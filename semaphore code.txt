@@ -1,0 +1,1063 @@
+#include<stdio.h>
+#include<math.h>
+#include<stdlib.h>
+#include<gl/glut.h>
+#include<string.h>
+
+#define PI 3.1415
+
+int in_welcome=1;
+int request[3],inQueue[3];
+int busy=0,canMove=1,isRed;
+
+struct final{
+  float xf,yf;
+  float xi,yi;
+}final[3];
+
+void init(void)
+{
+  glClearColor(0.9,0.8,0,1);
+  glEnable(GL_DEPTH_TEST);
+}
+
+void initialize(void)
+{
+   final[1].xf=37;
+   final[2].xf=42;
+   final[1].yf=final[2].yf=3;
+   final[1].xi=37;final[2].xi=42;
+   final[2].yi=final[1].yi=3;
+}
+
+void reshape(int w,int h)
+{
+   glViewport(0,0,(GLsizei)w,(GLsizei)h);
+   //set Viewing Volume
+   glMatrixMode(GL_PROJECTION);
+   glLoadIdentity();
+   glOrtho(0,50,0,50,-10,20);
+   //back to Model View Matrix
+   glMatrixMode(GL_MODELVIEW);
+   glLoadIdentity();   
+}
+
+
+
+void draw_resource(float x,float y,float z)
+{
+  char *msg="Resource";
+  char status[10];
+  int i;
+  glPushMatrix();
+  glLoadIdentity();
+  //glScalef(2,2,1);
+  glTranslatef(x,y,0);
+
+  glColor3f(0,0,0);
+  glRasterPos3f(3,4,z+5);
+  for(i=0;msg[i]!='\0';i++)
+    glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,msg[i]);
+  if(busy)
+	  strcpy(status,"(BUSY)");
+  else
+	  strcpy(status,"(IDLE)");
+  glRasterPos3f(3.5,1.5,z+5);
+  for(i=0;status[i]!='\0';i++)
+    glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,status[i]);
+  
+  glRotatef(-15,0,1,0);
+  glRotatef(3,1,0,0);
+  
+//resource front
+  if(!busy)
+	  glColor3f(0.8,0.8,0.8);
+  else 
+	  glColor3f(0,0.8,0);
+
+  glBegin(GL_POLYGON);
+   glVertex3f(0,0,z);
+   glVertex3f(0,7,z);
+   glVertex3f(13,7,z);
+   glVertex3f(13,0,z);
+  glEnd();
+  
+  //resource back
+  glColor3f(0.5,0.5,0.5);
+  glBegin(GL_POLYGON);
+   glVertex3f(0,0,z-2);
+   glVertex3f(0,7,z-2);
+   glVertex3f(13,7,z-2);
+   glVertex3f(13,0,z-2);
+  glEnd();
+//resource left 
+  glColor3f(0,0,0);
+  glBegin(GL_POLYGON);
+   glVertex3f(0,0,0);
+   glVertex3f(0,7,0);
+   glVertex3f(0,7,z-2);
+   glVertex3f(0,0,z-2);
+  glEnd();
+//resource top
+  glColor3f(0.2,0.2,0.2);
+  glBegin(GL_POLYGON);
+   glVertex3f(0,7,0);
+   glVertex3f(0,7,z-2);
+   glVertex3f(13,7,z-2);
+   glVertex3f(13,7,0);
+  glEnd();
+//resource right
+  glColor3f(0,0,0);
+  glBegin(GL_POLYGON);
+   glVertex3f(13,0,0);
+   glVertex3f(13,7,0);
+   glVertex3f(13,7,z-2);
+   glVertex3f(13,0,z-2);
+  glEnd();
+ //resource bottom
+  glColor3f(0.2,0.2,0.2);
+  glBegin(GL_POLYGON);
+   glVertex3f(0,0,0);
+   glVertex3f(0,0,z-2);
+   glVertex3f(13,0,z-2);
+   glVertex3f(13,0,0);
+  glEnd();
+  glFlush();
+  
+  
+ //draw_rsrc_outline(x,y,z);
+  glPopMatrix();
+}
+void wait(int nTimes)
+{
+	int i,j;
+  for(i=0;i<nTimes*100;i++)
+	  for(j=0;j<nTimes*100;j++);
+}
+
+void draw_arrow(int pNo)
+{
+	float x,y;
+	int i,angle,n;
+	
+ glPushMatrix();
+ glLoadIdentity();
+ glColor3f(0.4,0.4,0);
+  if(pNo==1)
+  {
+    x=38.5;y=10.6;angle=-38;n=32;
+  }
+  else if(pNo==2)
+  {
+    x=43.5,y=10.6;angle=-33;n=37;
+  }
+  glTranslatef(x,y,0);
+  glRotatef(angle,0,0,1);  
+  glRotatef(180,0,0,1);
+  
+  
+  for(i=0;i<=n;i+=2){
+    glBegin(GL_LINES);
+      glVertex3f(0+i,0,1);
+      glVertex3f(1+i,0,1);
+    glEnd();
+    glFlush();
+	wait(50);
+  }
+glPopMatrix();
+}
+
+void Fill_circle(float cx,float cy,float cz,int r,float num_segments)
+{
+
+	 int ii;
+		 float theta,x,y;
+	glBegin(GL_POLYGON); 
+	for(ii = 0; ii < num_segments; ii++) 
+	{ 
+		 theta = 2.0f * 3.1415926f * (ii) / (num_segments); 
+
+		 x = r * cos(theta); 
+		 y = r * sin(theta);
+ 
+		glVertex3f(x + cx, y + cy ,0);
+
+	} 
+	glEnd();
+	glFlush(); 
+}
+
+void draw_crown(char *msg)
+{ 
+   int i;
+   char *label="Operating System";
+  
+ glScalef(0.8,1.4,1);
+ glTranslatef(4,22,0.0);
+
+glColor3f(0.8,0.4,0);
+   glBegin(GL_QUADS);
+      glVertex3f(0,0,0);
+	  glVertex3f(0,2,0);
+	  glVertex3f(10.75,2,0);
+	  glVertex3f(10.75,0,0);
+   glEnd();
+
+    glBegin(GL_LINE_STRIP);
+	  glVertex3f(0,2,0);
+      glVertex3f(-1,6,0);
+      glVertex3f(2,2,0);
+   glEnd();
+
+   glBegin(GL_LINE_STRIP);
+      glVertex3f(2,2,0);
+      glVertex3f(1.5,7.5,0);
+	  glVertex3f(4,2,0);
+   glEnd();
+
+  glBegin(GL_LINE_STRIP);
+      glVertex3f(4,2,0);
+      glVertex3f(5,9.5,0);
+      glVertex3f(6,2,0);
+   glEnd();
+
+ glBegin(GL_LINE_STRIP);
+      glVertex3f(6,2,0);
+      glVertex3f(8.5,7.5,0);
+      glVertex3f(8,2,0);
+   glEnd();
+
+
+glBegin(GL_LINE_STRIP);
+      glVertex3f(8,2,0);
+      glVertex3f(11,6,0);
+      glVertex3f(10.6,1.8,0);
+   glEnd();
+
+glColor3f(0.8,0.4,0);
+Fill_circle(-1.5,6.8,0,1,5000);
+Fill_circle(1.3,8.5,0,1,5000);
+Fill_circle(5,10.5,0,1,5000.0);
+Fill_circle(8.7,8.5,0,1,5000.0);
+Fill_circle(11.5,6.8,0,1,5000.0);
+//display label
+  glColor3f(0,0,0);
+  glRasterPos3f(0.0,0.5,0.2);
+  for(i=0;label[i]!='\0';i++)
+	  glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,label[i]);
+  glFlush();
+//display message
+ glRasterPos3f(11,0.5,0.2);
+  for(i=0;msg[i]!='\0';i++)
+	  glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,msg[i]);
+  glFlush();
+if(msg[0]!='\0')
+  wait(100);
+
+glFlush();
+glLoadIdentity();
+}
+
+void draw_man(float x,float y,float z,int isProcess)
+{
+   int i;
+   float theta;
+   char process[25];
+   char *request_msg="Can I get the Resource ?";
+   //char response[30];
+ glTranslatef(x,y,0);
+ glColor3f(0,0.5,0);
+ 
+ if(isProcess==1)      {glRasterPos3f(1.0,8.6,z);strcpy(process,"Process 1");}
+ else if(isProcess==2) {glRasterPos3f(1.0,8.6,z);strcpy(process,"Process 2");}
+ else if(isProcess==0) {glRasterPos3f(1.5,17.2,z);strcpy(process,"Operating System");}
+ //display name of the process
+ for(i=0;process[i]!='\0';i++)
+	 glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,process[i]);
+ glFlush();
+
+ if(isProcess){
+ glScalef(0.5,0.5,1);
+	glColor3f(0.7,0,0);
+ }
+ else
+	 glColor3f(0,0,0);
+
+   glBegin(GL_QUADS);
+     //left leg
+     glVertex3f(3.5,0,z);
+	 glVertex3f(3.5,4,z);
+	 glVertex3f(4.5,4,z);
+	 glVertex3f(4.5,0,z);
+     //right leg
+	 glVertex3f(5.5,0,z);
+	 glVertex3f(5.5,4,z);
+	 glVertex3f(6.5,4,z);
+	 glVertex3f(6.5,0,z);
+	 //left hand
+	 glVertex3f(1.7,6,z);
+	 glVertex3f(1.7,10,z);
+	 glVertex3f(2.7,10,z);
+	 glVertex3f(2.7,6,z);
+	 glEnd();
+	if(isProcess)
+	{
+	 glBegin(GL_POLYGON);
+	//right hand
+	 glVertex3f(7.3,6,z);
+	 glVertex3f(7.3,10,z);
+	 glVertex3f(8.3,10,z);
+	 glVertex3f(8.3,6,z);
+	glEnd();
+	}
+	else
+	{
+	 glBegin(GL_POLYGON);
+	//right hand
+	 glVertex3f(8.5,10.2,z);
+	 glVertex3f(8.5,11.8,z);
+	 glVertex3f(12.5,11.8,z);
+	 glVertex3f(12.5,10.2,z);
+	glEnd();
+	glLineWidth(2);
+	 glBegin(GL_LINES);
+	   glVertex3f(2.2,6,z);
+	   glVertex3f(2.2,-10,z);
+	 glEnd();
+	glLineWidth(1);
+	}
+	glBegin(GL_LINE_LOOP);
+	 //left shoulder
+	 glVertex3f(1.5,10,z);
+	 glVertex3f(1.5,12,z);
+	 glVertex3f(3,12,z);
+	 glVertex3f(3,10,z);
+	 glEnd();
+	 glBegin(GL_LINE_LOOP);
+	 //right shoulder
+	 glVertex3f(7,10,z);
+	 glVertex3f(7,12,z);
+	 glVertex3f(8.5,12,z);
+	 glVertex3f(8.5,10,z);
+  glEnd();
+    glBegin(GL_LINE_LOOP);
+     glVertex3f(3,6.2,z);
+	 glVertex3f(3,12.2,z);
+	 glVertex3f(7,12.2,z);
+	 glVertex3f(7,6.2,z);
+  glEnd();
+  glBegin(GL_LINE_LOOP);
+     glVertex3f(3.2,4,z);
+	 glVertex3f(3.2,6.2,z);
+	 glVertex3f(6.8,6.2,z);
+	 glVertex3f(6.8,4,z);
+	 glVertex3f(5.2,4,z);
+	 glVertex3f(5,5,z);
+	 glVertex3f(4.8,4,z);
+  glEnd();
+    glBegin(GL_POLYGON);
+	//head
+	for(i=0;i<=24;i++)
+	{
+	  theta=i*(PI/12);
+	  glVertex3f(5+1.5*cos(theta),13.7+1.5*sin(theta),z);
+	}
+  glEnd();
+  glFlush();
+
+  if(request[isProcess])
+  {
+	draw_arrow(isProcess);
+	wait(100);
+	glColor3f(0,0,0);
+	glRasterPos3f(-2,21,z);
+    for(i=0;request_msg[i]!='\0';i++)
+	 glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,request_msg[i]);
+    glFlush();
+	wait(100);
+    request[isProcess]=0;
+  }
+     
+glLoadIdentity();
+}
+
+void draw_q(void)
+{
+ char *msg="QUEUE(process waiting for resource)";
+ 
+  int i;
+  glColor3f(0,0,0);
+  glRasterPos3f(22,37,5);
+  for(i=0;msg[i]!='\0';i++)
+	  glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,msg[i]);
+
+ glLineWidth(2);
+ glBegin(GL_LINES);
+  
+  glVertex3f(20,36,0);
+  glVertex3f(36,36,0);
+  glVertex3f(20,35.7,0);
+  glVertex3f(36,35.7,0);
+  glVertex3f(20,25,0);
+  glVertex3f(36,25,0);
+  glVertex3f(20,24.7,0);
+  glVertex3f(36,24.7,0);
+  glVertex3f(34,25,0);
+  glVertex3f(34,35.7,0);
+  glVertex3f(27.7,25,0);
+	glVertex3f(27.7,35.7,0);
+	glVertex3f(21.4,25,0);
+	glVertex3f(21.4,35.7,0);
+  glEnd();
+  glFlush();
+}
+
+
+
+
+void draw_light_board(float x,float y,float z,int isRed,char *msg)
+{
+  int i;
+  float theta;
+  char *label="Semaphore";
+
+  
+  glTranslatef(x,y,0);
+  
+//display label
+  glColor3f(0.4,0.4,0);
+  glRasterPos3f(-0.5,6,z);
+  for(i=0;label[i]!='\0';i++)
+	  glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,label[i]);
+  glFlush();
+//board front
+  glColor3f(0.2,0.2,0.2);
+  glBegin(GL_POLYGON);
+   glVertex3f(0,0,z);
+   glVertex3f(0,5,z);
+   glVertex3f(3,5,z);
+   glVertex3f(3,0,z);
+  glEnd();
+
+  glBegin(GL_LINE_LOOP);
+   glVertex3f(1.4,0,z-0.1);
+   glVertex3f(1.4,-4,z-0.1);
+   glVertex3f(1.6,-4,z-0.1);
+   glVertex3f(1.6,0,z-0.1);
+  glEnd();
+
+if(isRed)
+{
+//red light
+	glColor3f(1,0,0);
+	glBegin(GL_POLYGON);
+	  for(i=0;i<=24;i++)
+	  {
+	    theta= i*(PI/12.0);
+        glVertex3f(1.5+cos(theta),1.2+sin(theta),z+0.1);
+	  }
+	glEnd();
+   glColor3f(0,0,0);
+	glBegin(GL_LINE_LOOP);
+	  for(i=0;i<=24;i++)
+	  {
+	    theta= i*(PI/12.0);
+        glVertex3f(1.5+cos(theta),1.2+sin(theta),z+0.2);
+	  }
+	glEnd();
+}
+else
+{
+//green light
+	glColor3f(0,1,0);
+	glBegin(GL_POLYGON);
+	  for(i=0;i<=24;i++)
+	  {
+	    theta= i*(PI/12.0);
+        glVertex3f(1.5+cos(theta),3.8+sin(theta),z+0.1);
+	  }
+	glEnd();
+    glColor3f(0,0,0);
+	glBegin(GL_LINE_LOOP);
+	  for(i=0;i<=24;i++)
+	  {
+	    theta= i*(PI/12.0);
+        glVertex3f(1.5+cos(theta),3.8+sin(theta),z+0.2);
+	  }
+	glEnd();
+}
+//board back
+  glColor3f(0.5,0.5,0.5);
+  glBegin(GL_POLYGON);
+   glVertex3f(0,0,z-3);
+   glVertex3f(0,5,z-3);
+   glVertex3f(3,5,z-3);
+   glVertex3f(3,0,z-3);
+  glEnd();
+//board left 
+  glColor3f(0,0,0);
+  glBegin(GL_POLYGON);
+   glVertex3f(0,0,0);
+   glVertex3f(0,5,0);
+   glVertex3f(0,5,z-3);
+   glVertex3f(0,0,z-3);
+  glEnd();
+//board top
+  glColor3f(0.2,0.2,0.2);
+  glBegin(GL_POLYGON);
+   glVertex3f(0,5,0);
+   glVertex3f(0,5,z-3);
+   glVertex3f(3,5,z-3);
+   glVertex3f(3,5,0);
+  glEnd();
+//board right
+  glColor3f(0,0,0);
+  glBegin(GL_POLYGON);
+   glVertex3f(3,0,0);
+   glVertex3f(3,5,0);
+   glVertex3f(3,5,z-3);
+   glVertex3f(3,0,z-3);
+  glEnd();
+ //board bottom
+  glColor3f(0.2,0.2,0.2);
+  glBegin(GL_POLYGON);
+   glVertex3f(0,0,0);
+   glVertex3f(0,0,z-3);
+   glVertex3f(3,0,z-3);
+   glVertex3f(3,0,0);
+  glEnd();
+  glFlush();
+
+  glRasterPos3f(4,2,0);
+  for(i=0;msg[i]!='\0';i++)
+	  glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,msg[i]);
+  glFlush();
+  glLoadIdentity();
+
+}
+
+void draw_backgrnd(float z)
+{
+  glColor3f(.9,.8,.5);
+  glBegin(GL_POLYGON);
+    glVertex3f(5,2,z);
+	glVertex3f(5,45,z);
+	glVertex3f(50,45,z);
+	glVertex3f(50,2,z);
+  glEnd();
+
+  glFlush();
+}
+
+void show_guide(void)
+{
+  char *msg0="* Press key 1 to select Process 1";
+  char *msg1="* Press key 2 to select Process 2";
+  char *msg2="* Press key 'b' or 'B'(back) to release the resource";
+  char *msg3="* Press key 'q' or 'Q' to Quit";
+  
+  int i;
+  float x=3,y=10;
+  glColor3f(0,0.4,0);
+  glRasterPos3f(x,y,5);
+  for(i=0;msg0[i]!='\0';i++)
+  glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,msg0[i]);
+  y-=1.5;
+  glRasterPos3f(x,y,5);
+  for(i=0;msg1[i]!='\0';i++)
+  glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,msg1[i]);
+  y-=1.5;
+  glRasterPos3f(x,y,5);
+  for(i=0;msg2[i]!='\0';i++)
+  glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,msg2[i]);
+  y-=1.5;
+  glRasterPos3f(x,y,5);
+  for(i=0;msg3[i]!='\0';i++)
+  glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,msg3[i]);
+ 
+  glFlush();
+} 
+
+
+void move_man(int man)
+{
+ 
+	float x,y=3,z=-10;
+    char *msg="wait()";
+    	
+//-------------------------------------------------
+  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+  draw_resource(1.5,14,0);
+  draw_light_board(15,40,0,isRed,"");
+  draw_man(final[1].xf,final[1].yf,-12,1);
+  draw_man(final[2].xf,final[2].yf,-12,2);
+  draw_crown("");
+  glLineWidth(2);
+   glColor3f(0,0,0);
+   glBegin(GL_LINES);
+    glVertex3f(7,30.9,0);
+    glVertex3f(7,20,0);
+   glEnd();
+  show_guide();
+  draw_q();
+//--------------------------------------------------
+
+  if(man==1)
+   draw_man(final[2].xf,final[2].yf,0,2);
+  else if(man==2)
+   draw_man(final[1].xf,final[1].yf,0,1);
+  //make request bit 0
+  request[man]=0;
+	  
+  x=final[man].xf;y=final[man].yf;
+  if(!isRed){ //if !isRed grant resource
+  
+	  isRed=1;
+	  busy=man;
+  for(;y<=13;y++)
+	 {
+       draw_backgrnd(z);
+	   draw_man(x,y,z+0.1,man);
+	   wait(100);
+	   z+=0.2;
+  }
+
+  for(;x>=14;x-=2)
+	  {
+       draw_backgrnd(z);
+	   draw_man(x,y,z+0.1,man);
+	   wait(100);
+	   z+=0.2;
+  }
+   final[man].xf=x+2;final[man].yf=y;
+   draw_light_board(15,40,0.4,isRed,"");
+  
+  }//end if !isRed
+else //move to queue
+{
+	inQueue[man]=1;
+	
+	for(;y<=24;y+=2)
+	{
+       draw_backgrnd(z);
+	   draw_man(x,y,z+0.1,man);
+	   wait(100);
+	   z+=0.2;
+	}
+    for(;x>=21;x-=2)
+	{
+       draw_backgrnd(z);
+	   draw_man(x,y,z+0.1,man);
+	   wait(100);
+	   z+=0.2;
+	}
+  final[man].xf=x+2;final[man].yf=y;
+}//end else
+
+//-----------------------------------------------------
+glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+  draw_resource(1.5,14,0);
+  draw_light_board(15,40,0,isRed,"");
+  draw_man(final[1].xf,final[1].yf,-12,1);
+  draw_man(final[2].xf,final[2].yf,-12,2);
+  draw_crown("");//(2,27,0,0);
+  glLineWidth(2);
+   glColor3f(0,0,0);
+   glBegin(GL_LINES);
+    glVertex3f(7,30.9,0);
+    glVertex3f(7,20,0);
+   glEnd();
+  show_guide();
+  draw_q();
+ //----------------------------------------------------
+}
+
+void move_back(void)
+{
+  float x=10,y=5,z=-11;
+  int man;
+
+//-----------------------------------------------------
+glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+  draw_resource(1.5,14,0);
+  draw_light_board(15,40,0,isRed,"");
+  draw_man(final[1].xf,final[1].yf,-12,1);
+  draw_man(final[2].xf,final[2].yf,-12,2);
+  draw_crown("");//(2,27,0,0);
+  glLineWidth(2);
+   glColor3f(0,0,0);
+   glBegin(GL_LINES);
+    glVertex3f(7,30.9,0);
+    glVertex3f(7,20,0);
+   glEnd();
+  show_guide();
+  draw_q();
+ //----------------------------------------------------
+
+  if(busy==1)
+  {
+    draw_man(final[2].xf,final[2].yf,0,2);
+	for(x=final[1].xf,y=final[1].yf;x<final[1].xi;x++)
+	{//for
+		draw_backgrnd(z);
+	    draw_man(x,y,z+0.1,1);
+		wait(100);
+		z+=0.2;
+	}//end for
+	for(;y>=final[1].yi;y--)
+	{//for	
+	  draw_backgrnd(z);
+	  draw_man(x,y,z+0.1,1);
+	  wait(100);
+	  z+=0.2;
+	}//end for
+	glFlush();
+	final[1].yf=y+1;final[1].xf=x;
+  }//end if busy ==1
+  else if(busy==2)
+  {
+    draw_man(final[1].xf,final[1].yf,0,1);
+	for(x=final[2].xf,y=final[2].yf;x<final[2].xi;x++)
+	{//for
+		draw_backgrnd(z);
+	    draw_man(x,y,z+0.1,2);
+		wait(100);
+		z+=0.2;
+	}//end for
+	for(;y>=final[2].yi;y--)
+	{//for
+	  draw_backgrnd(z);
+	  draw_man(x,y,z+0.1,2);
+	  wait(100);
+	  z+=0.2;
+	}//end for
+    glFlush();
+	final[2].yf=y+1;final[2].xf=x;
+  }//end is busy==2	
+  else
+  {
+     draw_crown("No Process is busy.");
+  }
+wait(100);
+isRed=0;
+busy=0;
+//---------------------------------------------------------
+  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+  draw_resource(1.5,14,0);
+  draw_light_board(15,40,0,isRed,"");
+  draw_man(final[1].xf,final[1].yf,-12,1);
+  draw_man(final[2].xf,final[2].yf,-12,2);
+  draw_crown("");//(2,27,0,0);
+  glLineWidth(2);
+   glColor3f(0,0,0);
+   glBegin(GL_LINES);
+    glVertex3f(7,30.9,0);
+    glVertex3f(7,20,0);
+   glEnd();
+  show_guide();
+  draw_q();
+//-----------------------------------------------------------
+    z=-11;
+	if(inQueue[1]){
+		man=1;
+		inQueue[1]=0;
+		draw_man(final[2].xf,final[2].yf,0,2);
+	}
+	else if(inQueue[2]){
+	    man=2;
+		inQueue[2]=0;
+		draw_man(final[1].xf,final[1].yf,0,1);
+	}
+	else {
+		man=0;
+		isRed=0;
+	}
+    x=final[man].xf;
+	y=final[man].yf;
+	if(man!=0){
+		z+=0.1;
+	for(;x>=final[man].xf-6;x--)
+	{
+	  draw_backgrnd(z);
+	  draw_man(x,y,z+0.1,man);
+	  wait(100);
+	  z+=0.2;
+	}
+	for(;y>=final[man].yf-11;y--)
+	{
+	  draw_backgrnd(z);
+	  draw_man(x,y,z+0.1,man);
+	  wait(100);
+	  z+=0.2;
+	}
+	final[man].xf=x;final[man].yf=y+1;
+	glFlush();
+	}//end if man!=0
+    busy=man;
+    glFlush();
+	wait(100);
+    if(busy)
+	  isRed=1;
+	else
+	  isRed=0;
+	glutPostRedisplay();
+}
+
+void main_page(void)
+{
+ // glClearColor(0.9,0.8,0,1);
+  glClear(GL_COLOR_BUFFER_BIT |GL_DEPTH_BUFFER_BIT);
+  glLineWidth(2);
+   glColor3f(0,0,0);
+   glBegin(GL_LINES);
+    glVertex3f(7,30.9,0);
+    glVertex3f(7,20,0);
+   glEnd();
+  
+  draw_resource(1.5,14,0);
+  draw_light_board(15,40,0,isRed,"");
+  draw_man(final[1].xf,final[1].yf,-12,1);
+  draw_man(final[2].xf,final[2].yf,-12,2);
+  draw_crown("");
+  show_guide();
+  draw_q();
+}
+
+
+void myKey(unsigned char key ,int x,int y)
+{
+	if(!in_welcome){
+	if(key=='1')
+	{
+		if(request[1]!=1 && inQueue[1]!=1 && busy!=1)
+		{
+	      request[1]=1;
+	      draw_man(37,3,-11,1);
+		  wait(100);
+		  if(isRed)
+			  draw_crown("No.Resource not available.");
+		  else
+			  draw_crown("Yes.You can Proceed.");
+		  draw_light_board(15,40,0,isRed,"Wait()");
+		  wait(300);
+	      move_man(1);
+		}
+	}
+	else if(key=='2')
+	{
+		if(request[2]!=1 && inQueue[2]!=1 && busy!=2)
+		{
+	      request[2]=1;
+	      draw_man(42,3,-11,2);
+		  wait(100);
+		  if(isRed)
+		  {
+			  draw_crown("No.Resource not available.");
+draw_light_board(15,40,0,isRed,"");
+		  }
+		  else
+			  draw_crown("Yes.You can Proceed.");
+		  draw_light_board(15,40,0,isRed,"Wait()");
+		  wait(300);
+	      move_man(2);
+		}
+	}
+	else if(key=='b' || key=='B')
+	{
+		if(busy){
+	  draw_light_board(15,40,0,isRed,"Signal()");
+	  wait(200);
+		}
+	  move_back();
+	}
+	}//end if !in_welcome
+  if(key==13)
+	  if(in_welcome){
+		in_welcome=0;
+		main_page();
+	  }
+	  
+	if(key=='q'||key=='Q')
+		exit(0);
+}
+
+void welcome(void)
+{
+    char *begin="Mini-Project\n\ton";
+    char *project_title="Illustration of Solution to Critical-Section problem with Semaphores Using OpenGL";
+	char *by="By ,\nAMRUTH R HEBBAR\t\t4BD20CS012\t\nJEEVAN H K\t\t4BD20CS040\n";
+	char *msg="press enter to continue";
+    float x=20,y=40,z=0;
+    int i;
+
+  in_welcome=1;
+  glClearColor(.9,.8,.5,1);
+  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+  
+  glLineWidth(3);
+  glColor3f(0.4,0.4,0.4);
+  glBegin(GL_LINES);
+    glVertex3f(3,0,0);
+	glVertex3f(3,50,0);
+	glVertex3f(47,0,0);
+	glVertex3f(47,50,0);
+	glVertex3f(0,3,0);
+	glVertex3f(50,3,0);
+	glVertex3f(0,47,0);
+    glVertex3f(50,47,0);
+  glEnd();
+  
+  glColor3f(0.3,0.3,0.3);
+  glRasterPos3f(x,y,z);
+  for(i=0;begin[i]!='\0';i++)
+  {
+	  if(begin[i]=='\n')
+	  {
+	    y-=2;
+		glRasterPos3f(x,y,z);
+	  }
+	  else if(begin[i]=='\t')
+	  {
+	    x=22;
+		glRasterPos3f(x,y,z);
+	  }
+	  else
+	    glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,begin[i]);
+  }
+  x=5,y=35;
+  glColor3f(0.3,0.3,0.3);
+  glRasterPos3f(x,y,z);
+  for(i=0;project_title[i]!='\0';i++)
+  {
+	  if(project_title[i]=='\n')
+	  {
+	    y-=2;
+		glRasterPos3f(x,y,z);
+	  }
+	  else
+	    glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,project_title[i]);
+  }
+   glFlush();
+   
+  x=10,y=20;
+  glColor3f(0.3,0.3,0.3);
+  glRasterPos3f(x,y,z);
+  for(i=0;by[i]!='\0';i++)
+  {
+	  if(by[i]=='\n')
+	  {
+	    y-=2;
+		x=10;
+		glRasterPos3f(x,y,z);
+	  }
+	  else if(by[i]=='\t')
+	  {
+	    x=21;
+		glRasterPos3f(x,y,z);
+	  }
+	  else
+	    glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,by[i]);
+  }
+  x=17,y=9;
+  glColor3f(0.7,0.3,0.3);
+  glRasterPos3f(x,y,z);
+  for(i=0;msg[i]!='\0';i++)
+  {
+	  if(msg[i]=='\n')
+	  {
+	    y-=2;
+		glRasterPos3f(x,y,z);
+	  }
+	  else
+	    glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,msg[i]);
+  }
+   glFlush();
+   
+   
+}
+
+void display(void)
+{ 
+	
+ glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+  if(in_welcome)
+	 welcome();
+  else
+   main_page();
+  
+}
+
+void s_menu(int id)
+{
+	switch(id)
+	{
+	case 1: if(request[1]!=1 && inQueue[1]!=1 && busy!=1)
+		{
+	      request[1]=1;
+	      draw_man(37,3,-11,1);
+		  wait(100);
+		  if(isRed)
+			  draw_crown("No.Resource not available.");
+		  else
+			  draw_crown("Yes.You can Proceed.");
+		  draw_light_board(15,40,0,isRed,"Wait()");
+		  wait(300);
+	      move_man(1);
+		}
+			break;
+	case 2: if(request[2]!=1 && inQueue[2]!=1 && busy!=2)
+		{
+	      request[2]=1;
+	      draw_man(42,3,-11,2);
+		  wait(100);
+		  if(isRed)
+		  {
+			  draw_crown("No.Resource not available.");
+draw_light_board(15,40,0,isRed,"");
+		  }
+		  else
+			  draw_crown("Yes.You can Proceed.");
+		  draw_light_board(15,40,0,isRed,"Wait()");
+		  wait(300);
+	      move_man(2);
+		}
+			break;
+	case 3: 	if(busy){
+	  draw_light_board(15,40,0,isRed,"Signal()");
+	  wait(200);
+		}
+	  move_back();
+	  break;
+	case 4: exit(0);
+	}
+	glutPostRedisplay();
+}
+
+
+
+void main(void)
+{
+   glutInitDisplayMode(GLUT_SINGLE|GLUT_RGB|GLUT_DEPTH);
+   glutInitWindowPosition(50,50);
+   glutInitWindowSize(400,300);
+   glutCreateWindow("Semaphore Implementation");
+  // glutFullScreen();
+   init();
+   glutReshapeFunc(reshape);
+   glutDisplayFunc(display);
+   glutCreateMenu(s_menu);
+   glutAddMenuEntry("Process1",1);
+   glutAddMenuEntry("Process2",2);
+   glutAddMenuEntry("Release",3);
+   glutAddMenuEntry("Quit",4);
+   glutAttachMenu(GLUT_RIGHT_BUTTON);
+   glutKeyboardFunc(myKey);
+ 
+   initialize();
+   glutMainLoop();
+}
+
+
+
